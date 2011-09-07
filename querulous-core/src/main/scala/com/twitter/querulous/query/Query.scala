@@ -8,7 +8,10 @@ trait QueryFactory {
 
 trait Query {
   def select[A](f: ResultSet => A): Seq[A]
+
   def execute(): Int
+
   def addParams(params: Any*)
+
   def cancel()
 }

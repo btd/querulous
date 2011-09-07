@@ -12,17 +12,20 @@ class SqlQueryFactory extends QueryFactory {
 }
 
 class TooFewQueryParametersException(t: Throwable) extends Exception(t)
+
 class TooManyQueryParametersException(t: Throwable) extends Exception(t)
 
 sealed abstract case class NullValue(typeVal: Int)
+
 object NullValues {
   private val selectTypeValFields = (f: Field) => {
     Modifier.isStatic(f.getModifiers) && classOf[Int].isAssignableFrom(f.getType)
   }
 
-  private val nullTypes = Map(classOf[Types].getFields.filter(selectTypeValFields).map { f: Field =>
-    val typeVal = f.getInt(null)
-    (typeVal, new NullValue(typeVal) {})
+  private val nullTypes = Map(classOf[Types].getFields.filter(selectTypeValFields).map {
+    f: Field =>
+      val typeVal = f.getInt(null)
+      (typeVal, new NullValue(typeVal) {})
   }: _*)
 
   val NullString = NullValues(Types.VARCHAR)
@@ -44,7 +47,7 @@ object NullValues {
 class SqlQuery(connection: Connection, val query: String, params: Any*) extends Query {
 
   def this(connection: Connection, query: String) = {
-    this(connection, query, Nil)
+    this (connection, query, Nil)
   }
 
   var paramsInitialized = false
@@ -68,7 +71,7 @@ class SqlQuery(connection: Connection, val query: String, params: Any*) extends 
   }
 
   def addParams(params: Any*) = {
-    if(paramsInitialized && !batchMode) {
+    if (paramsInitialized && !batchMode) {
       statement.addBatch()
     }
     setBindVariable(statement, 1, params)
@@ -78,8 +81,8 @@ class SqlQuery(connection: Connection, val query: String, params: Any*) extends 
 
   def execute() = {
     withStatement {
-      if(batchMode) {
-        statement.executeBatch().foldLeft(0)(_+_)
+      if (batchMode) {
+        statement.executeBatch().foldLeft(0)(_ + _)
       } else {
         statement.executeUpdate()
       }
@@ -114,7 +117,7 @@ class SqlQuery(connection: Connection, val query: String, params: Any*) extends 
   }
 
   private def expandArrayParams(query: String, params: Any*): String = {
-    if(params.isEmpty){
+    if (params.isEmpty) {
       return query
     }
     val p = Pattern.compile("\\?")
@@ -123,13 +126,13 @@ class SqlQuery(connection: Connection, val query: String, params: Any*) extends 
     var i = 0
 
     def marks(param: Any): String = param match {
-      case t2: (_,_) => "(?,?)"
-      case t3: (_,_,_) => "(?,?,?)"
-      case t4: (_,_,_,_) => "(?,?,?,?)"
+      case t2: (_, _) => "(?,?)"
+      case t3: (_, _, _) => "(?,?,?)"
+      case t4: (_, _, _, _) => "(?,?,?,?)"
       case a: Array[Byte] => "?"
       case s: Iterable[_] => s.toSeq.map(marks(_)).mkString(",")
       case _ => "?"
-   }
+    }
 
     while (m.find) {
       try {

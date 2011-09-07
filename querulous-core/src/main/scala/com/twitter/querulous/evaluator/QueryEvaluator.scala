@@ -2,27 +2,26 @@ package com.twitter.querulous.evaluator
 
 
 import java.sql.ResultSet
-import com.twitter.conversions.time._
-import com.twitter.querulous.database.ApachePoolingDatabaseFactory
-import com.twitter.querulous.query.{QueryClass, Query, SqlQueryFactory}
-import com.twitter.querulous.config.Connection
+import com.twitter.querulous.query.{QueryClass, Query}
+import com.twitter.querulous.config.ConnectionConfig
 
+/*
 object QueryEvaluator extends QueryEvaluatorFactory {
-  private def createEvaluatorFactory = {
-    val queryFactory = new SqlQueryFactory
-    val databaseFactory = new ApachePoolingDatabaseFactory(10, 10, 1.second, 10.millis, false, 0.seconds)
-    new StandardQueryEvaluatorFactory(databaseFactory, queryFactory)
-  }
-
-  def apply(driver: String, url: String, username: String, password: String) = {
-    createEvaluatorFactory(driver, url, username, password)
-  }
+private def createEvaluatorFactory = {
+  //val queryFactory = new SqlQueryFactory
+  //val databaseFactory = new ApachePoolingDatabaseFactory(10, 10, 1.second, 10.millis, false, 0.seconds)
+  //new StandardQueryEvaluatorFactory(databaseFactory, queryFactory)
 }
+
+def apply(driver: String, url: String, username: String, password: String) = {
+  //createEvaluatorFactory(driver, url, username, password)
+}
+}  */
 
 trait QueryEvaluatorFactory {
   def apply(driver: String, url: String, username: String, password: String): QueryEvaluator
 
-  def apply(connection: Connection): QueryEvaluator = apply(connection.driver, connection.url, connection.username, connection.password)
+  def apply(connection: ConnectionConfig): QueryEvaluator = apply(connection.driver, connection.url, connection.username, connection.password)
 }
 
 class ParamsApplier(query: Query) {

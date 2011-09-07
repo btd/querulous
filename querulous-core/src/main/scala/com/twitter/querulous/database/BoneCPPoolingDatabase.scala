@@ -7,16 +7,11 @@ package com.twitter.querulous.database
 
 import com.jolbox.bonecp.{BoneCP, BoneCPConfig}
 
-/**
- * Created by IntelliJ IDEA.
- * User: den
- * Date: 07.08.11
- * Time: 19:10
- * To change this template use File | Settings | File Templates.
- */
 
 class BoneCPPoolingDatabaseFactory(partitionCount: Int, maxConnectionsPerPartition: Int, minConnectionsPerPartition: Int, acquireIncrement: Int) extends DatabaseFactory {
   def apply(driver: String, url: String, username: String, password: String) =
+
+
     new BoneCPPoolingDatabase(driver, url, username, password, partitionCount, maxConnectionsPerPartition, minConnectionsPerPartition, acquireIncrement)
 
 }

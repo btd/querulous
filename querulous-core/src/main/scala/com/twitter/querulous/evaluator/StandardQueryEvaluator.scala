@@ -1,6 +1,6 @@
 package com.twitter.querulous.evaluator
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, Connection}
 import com.twitter.querulous.database.{Database, DatabaseFactory}
 import com.twitter.querulous.query.{QueryClass, QueryFactory}
 
