@@ -1,12 +1,11 @@
 package com.twitter.querulous.evaluator
 
-import com.twitter.querulous._
-import config.Connection
+
 import java.sql.ResultSet
 import com.twitter.conversions.time._
-import com.twitter.querulous.database._
-import com.twitter.querulous.query._
-
+import com.twitter.querulous.database.ApachePoolingDatabaseFactory
+import com.twitter.querulous.query.{QueryClass, Query, SqlQueryFactory}
+import com.twitter.querulous.config.Connection
 
 object QueryEvaluator extends QueryEvaluatorFactory {
   private def createEvaluatorFactory = {

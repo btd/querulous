@@ -1,18 +1,8 @@
 package com.twitter.querulous.database
 
-import com.twitter.util.Duration
 import java.sql.{SQLException, Connection}
 
-object Database {
-  //TODO: allow passing this via setup configuration
-  private[querulous] var driverName: String = "jdbc:mysql"
 
-  val defaultUrlOptions = Map(
-    "useUnicode" -> "true",
-    "characterEncoding" -> "UTF-8",
-    "connectTimeout" -> "100"
-  )
-}
 
 trait DatabaseFactory {
   def apply(driver: String, url: String, username: String, password: String): Database

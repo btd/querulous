@@ -29,11 +29,11 @@ class Query {
   var retries: Int = 0
   var debug: (String => Unit) = NoDebugOutput
 
-  def apply(statsCollector: StatsCollector): QueryFactory = apply(statsCollector, None)
+  def apply(): QueryFactory = apply(None)
 
-  def apply(statsCollector: StatsCollector, statsFactory: QueryFactory => QueryFactory): QueryFactory = apply(statsCollector, Some(statsFactory))
+  def apply(statsFactory: QueryFactory => QueryFactory): QueryFactory = apply(Some(statsFactory))
 
-  def apply(statsCollector: StatsCollector, statsFactory: Option[QueryFactory => QueryFactory]): QueryFactory = {
+  def apply(statsFactory: Option[QueryFactory => QueryFactory]): QueryFactory = {
     var queryFactory: QueryFactory = new SqlQueryFactory
 
     if (!timeouts.isEmpty) {
@@ -48,10 +48,6 @@ class Query {
       queryFactory = f(queryFactory)
     }
 
-    if (statsCollector ne NullStatsCollector) {
-      queryFactory = new StatsCollectingQueryFactory(queryFactory, statsCollector)
-    }
-
     if (retries > 0) {
       queryFactory = new RetryingQueryFactory(queryFactory, retries)
     }
@@ -63,5 +59,5 @@ class Query {
     queryFactory
   }
 
-  def apply(): QueryFactory = apply(NullStatsCollector)
+
 }

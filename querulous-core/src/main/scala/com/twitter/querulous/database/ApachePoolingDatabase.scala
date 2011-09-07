@@ -1,6 +1,5 @@
 package com.twitter.querulous.database
 
-import java.sql.{SQLException, Connection}
 import org.apache.commons.dbcp.{PoolableConnectionFactory, DriverManagerConnectionFactory, PoolingDataSource}
 import org.apache.commons.pool.impl.GenericObjectPool
 import com.twitter.util.Duration

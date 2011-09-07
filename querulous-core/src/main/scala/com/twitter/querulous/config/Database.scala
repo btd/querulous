@@ -75,48 +75,7 @@ trait AutoDisablingDatabase {
   }
 }
 
-class Database {
-  var pool: Option[PoolingDatabase] = None
-  def pool_=(p: PoolingDatabase) { pool = Some(p) }
-  var autoDisable: Option[AutoDisablingDatabase] = None
-  def autoDisable_=(a: AutoDisablingDatabase) { autoDisable = Some(a) }
-  var timeout: Option[TimingOutDatabase] = None
-  def timeout_=(t: TimingOutDatabase) { timeout = Some(t) }
-  var memoize: Boolean = true
-  var serviceName: Option[String] = None
-  def serviceName_=(s: String) { serviceName = Some(s) }
 
-  def apply(stats: StatsCollector): DatabaseFactory = apply(stats, None)
-
-  def apply(stats: StatsCollector, statsFactory: DatabaseFactory => DatabaseFactory): DatabaseFactory = apply(stats, Some(statsFactory))
-
-  def apply(stats: StatsCollector, statsFactory: Option[DatabaseFactory => DatabaseFactory]): DatabaseFactory = {
-    var factory = pool.map{ _ match {
-      case p: ServiceNameTagged => p(serviceName)
-      case p: PoolingDatabase => p()
-    }}.getOrElse(new SingleConnectionDatabaseFactory)
-
-    timeout.foreach { timeout => factory = timeout(factory) }
-
-    statsFactory.foreach { f =>
-      factory = f(factory)
-    }
-
-    if (stats ne NullStatsCollector) {
-      factory = new StatsCollectingDatabaseFactory(factory, stats)
-    }
-
-    autoDisable.foreach { autoDisable => factory = autoDisable(factory) }
-
-    if (memoize) {
-      factory = new MemoizingDatabaseFactory(factory)
-    }
-
-    factory
-  }
-
-  def apply(): DatabaseFactory = apply(NullStatsCollector)
-}
 
 trait Connection {
   def url: String
