@@ -27,9 +27,6 @@ object UtilBuild extends Build {
 
   // Sub-project specific dependencies
   val defaultDeps = Seq (
-  "com.twitter"         %% "util-core"        % "1.11.2-SNAPSHOT",
-  "commons-dbcp"        % "commons-dbcp"      % "1.4",
-  "commons-pool"        % "commons-pool"      % "1.5.4",
   "com.jolbox"          % "bonecp"            % "0.7.1.RELEASE",
   "com.h2database"      % "h2"                % "1.3.158"
   )
