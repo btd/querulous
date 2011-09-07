@@ -28,6 +28,18 @@ class ApachePoolingDatabase extends PoolingDatabase {
   }
 }
 
+class BoneCPPoolingDatabase extends PoolingDatabase {
+  var partitionCount: Int = 2
+  var maxConnectionsPerPartition: Int = 5
+  var minConnectionsPerPartition: Int = 1
+  var acquireIncrement: Int = 2
+
+  def apply() =
+    new BoneCPPoolingDatabaseFactory(
+      partitionCount, maxConnectionsPerPartition, minConnectionsPerPartition, acquireIncrement)
+
+}
+
 class ThrottledPoolingDatabase extends PoolingDatabase with ServiceNameTagged {
   var size: Int = 10
   var openTimeout: Duration = 50.millis
@@ -107,53 +119,11 @@ class Database {
 }
 
 trait Connection {
-  def hostnames: Seq[String]
-  def database: String
+  def url: String
+
+  def driver: String
+
   def username: String
+
   def password: String
-  var urlOptions: Map[String, String] = Map()
-
-  def withHost(newHost: String) = {
-    val current = this
-    new Connection {
-      def hostnames = Seq(newHost)
-      def database = current.database
-      def username = current.username
-      def password = current.password
-      urlOptions = current.urlOptions
-    }
-  }
-
-  def withHosts(newHosts: Seq[String]) = {
-    val current = this
-    new Connection {
-      def hostnames = newHosts
-      def database = current.database
-      def username = current.username
-      def password = current.password
-      urlOptions = current.urlOptions
-    }
-  }
-
-  def withDatabase(newDatabase: String) = {
-    val current = this
-    new Connection {
-      def hostnames = current.hostnames
-      def database = newDatabase
-      def username = current.username
-      def password = current.password
-      urlOptions = current.urlOptions
-    }
-  }
-
-  def withoutDatabase = {
-    val current = this
-    new Connection {
-      def hostnames = current.hostnames
-      def database = null
-      def username = current.username
-      def password = current.password
-      urlOptions = current.urlOptions
-    }
-  }
 }

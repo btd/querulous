@@ -139,8 +139,8 @@ class ThrottledPool(factory: () => Connection, val size: Int, timeout: Duration,
 
 class PoolWatchdogThread(
   pool: ThrottledPool,
-  hosts: Seq[String],
-  repopulateInterval: Duration) extends Thread(hosts.mkString(",") + "-pool-watchdog") {
+  url: String,
+  repopulateInterval: Duration) extends Thread(url + "-pool-watchdog") {
 
   this.setDaemon(true)
 
@@ -186,54 +186,46 @@ class ThrottledPoolingDatabaseFactory(
     this(size, openTimeout, idleTimeout, repopulateInterval, Map.empty)
   }
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String,
-    urlOptions: Map[String, String]) = {
-    val finalUrlOptions =
-      if (urlOptions eq null) {
-      defaultUrlOptions
-    } else {
-      defaultUrlOptions ++ urlOptions
-    }
+  def apply(driver: String, url: String, username: String, password: String) = {
 
-    new ThrottledPoolingDatabase(serviceName, dbhosts, dbname, username, password, finalUrlOptions,
+
+    new ThrottledPoolingDatabase(serviceName, driver, url, username, password,
       size, openTimeout, idleTimeout, repopulateInterval)
   }
 }
 
 class ThrottledPoolingDatabase(
   val serviceName: Option[String],
-  val hosts: List[String],
-  val name: String,
+  val driver: String,
+  val url: String,
   val username: String,
   password: String,
-  val extraUrlOptions: Map[String, String],
   numConnections: Int,
   val openTimeout: Duration,
   idleTimeout: Duration,
   repopulateInterval: Duration) extends Database {
 
-  Class.forName("com.mysql.jdbc.Driver")
+  Class.forName(driver)
 
-  private val pool = new ThrottledPool(mkConnection, numConnections, openTimeout, idleTimeout, hosts.mkString(","))
+  private val pool = new ThrottledPool(mkConnection, numConnections, openTimeout, idleTimeout, url)
   private val poolingDataSource = new PoolingDataSource(pool)
   poolingDataSource.setAccessToUnderlyingConnectionAllowed(true)
-  new PoolWatchdogThread(pool, hosts, repopulateInterval).start()
+  new PoolWatchdogThread(pool, url, repopulateInterval).start()
   private val gaugePrefix = serviceName.map{ _ + "-" }.getOrElse("")
 
   private val gauges = if (gaugePrefix != "") {
     List(
-      (gaugePrefix + hosts.mkString(",") + "-num-connections", () => {pool.getTotal().toDouble}),
-      (gaugePrefix + hosts.mkString(",") + "-num-idle-connections", () => {pool.getNumIdle().toDouble}),
-      (gaugePrefix + hosts.mkString(",") + "-num-waiters", () => {pool.getNumWaiters().toDouble})
+      (gaugePrefix + url + "-num-connections", () => {pool.getTotal().toDouble}),
+      (gaugePrefix + url + "-num-idle-connections", () => {pool.getNumIdle().toDouble}),
+      (gaugePrefix + url + "-num-waiters", () => {pool.getNumWaiters().toDouble})
     )
   } else {
     List()
   }
 
-  def this(hosts: List[String], name: String, username: String, password: String,
-    extraUrlOptions: Map[String, String], numConnections: Int, openTimeout: Duration,
+  def this(driver: String, url: String, username: String, password: String, numConnections: Int, openTimeout: Duration,
     idleTimeout: Duration, repopulateInterval: Duration) = {
-    this(None, hosts, name, username, password, extraUrlOptions, numConnections, openTimeout,
+    this(None, driver, url, username, password, numConnections, openTimeout,
       idleTimeout, repopulateInterval)
   }
 
@@ -242,16 +234,17 @@ class ThrottledPoolingDatabase(
       poolingDataSource.getConnection()
     } catch {
       case e: PoolTimeoutException =>
-        throw new SqlDatabaseTimeoutException(hosts.mkString(",") + "/" + name, openTimeout)
+        throw new SqlDatabaseTimeoutException(url, openTimeout)
     }
   }
 
-  def close(connection: Connection) {
+  override def close(connection: Connection) {
     try { connection.close() } catch { case _: SQLException => }
   }
 
   protected def mkConnection(): Connection = {
-    DriverManager.getConnection(url(hosts, name, urlOptions), username, password)
+
+    DriverManager.getConnection(url, username, password)
   }
 
   override protected[database] def getGauges: Seq[(String, ()=>Double)] = {

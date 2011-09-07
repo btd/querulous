@@ -6,32 +6,20 @@ import org.apache.commons.pool.impl.GenericObjectPool
 import com.twitter.util.Duration
 
 class ApachePoolingDatabaseFactory(
-  val minOpenConnections: Int,
-  val maxOpenConnections: Int,
-  checkConnectionHealthWhenIdleFor: Duration,
-  maxWaitForConnectionReservation: Duration,
-  checkConnectionHealthOnReservation: Boolean,
-  evictConnectionIfIdleFor: Duration,
-  defaultUrlOptions: Map[String, String]) extends DatabaseFactory {
+                                    val minOpenConnections: Int,
+                                    val maxOpenConnections: Int,
+                                    checkConnectionHealthWhenIdleFor: Duration,
+                                    maxWaitForConnectionReservation: Duration,
+                                    checkConnectionHealthOnReservation: Boolean,
+                                    evictConnectionIfIdleFor: Duration) extends DatabaseFactory {
 
-  def this(minConns: Int, maxConns: Int, checkIdle: Duration, maxWait: Duration, checkHealth: Boolean, evictTime: Duration) = {
-    this(minConns, maxConns, checkIdle, maxWait, checkHealth, evictTime, Map.empty)
-  }
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String, urlOptions: Map[String, String]) = {
-    val finalUrlOptions =
-      if (urlOptions eq null) {
-        defaultUrlOptions
-      } else {
-        defaultUrlOptions ++ urlOptions
-      }
-
+  def apply(driver: String, url: String, username: String, password: String) = {
     new ApachePoolingDatabase(
-      dbhosts,
-      dbname,
+      driver,
+      url,
       username,
       password,
-      finalUrlOptions,
       minOpenConnections,
       maxOpenConnections,
       checkConnectionHealthWhenIdleFor,
@@ -43,20 +31,19 @@ class ApachePoolingDatabaseFactory(
 }
 
 class ApachePoolingDatabase(
-  val hosts: List[String],
-  val name: String,
-  val username: String,
-  password: String,
-  val extraUrlOptions: Map[String, String],
-  minOpenConnections: Int,
-  maxOpenConnections: Int,
-  checkConnectionHealthWhenIdleFor: Duration,
-  val openTimeout: Duration,
-  checkConnectionHealthOnReservation: Boolean,
-  evictConnectionIfIdleFor: Duration)
-extends Database {
+                             val driver: String,
+                             val url: String,
+                             val username: String,
+                             password: String,
+                             minOpenConnections: Int,
+                             maxOpenConnections: Int,
+                             checkConnectionHealthWhenIdleFor: Duration,
+                             val openTimeout: Duration,
+                             checkConnectionHealthOnReservation: Boolean,
+                             evictConnectionIfIdleFor: Duration)
+  extends Database {
 
-  Class.forName("com.mysql.jdbc.Driver")
+  Class.forName(driver)
 
   private val config = new GenericObjectPool.Config
   config.maxActive = maxOpenConnections
@@ -72,7 +59,7 @@ extends Database {
   config.lifo = false
 
   private val connectionPool = new GenericObjectPool(null, config)
-  private val connectionFactory = new DriverManagerConnectionFactory(url(hosts, name, urlOptions), username, password)
+  private val connectionFactory = new DriverManagerConnectionFactory(url, username, password)
   private val poolableConnectionFactory = new PoolableConnectionFactory(
     connectionFactory,
     connectionPool,
@@ -83,15 +70,9 @@ extends Database {
   private val poolingDataSource = new PoolingDataSource(connectionPool)
   poolingDataSource.setAccessToUnderlyingConnectionAllowed(true)
 
-  def close(connection: Connection) {
-    try {
-      connection.close()
-    } catch {
-      case _: SQLException =>
-    }
-  }
+
 
   def open() = poolingDataSource.getConnection()
 
-  override def toString = hosts.head + "_" + name
+  override def toString = url
 }

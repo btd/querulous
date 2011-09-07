@@ -6,9 +6,9 @@ import java.sql.{Connection, SQLException}
 
 
 class AutoDisablingDatabaseFactory(val databaseFactory: DatabaseFactory, val disableErrorCount: Int, val disableDuration: Duration) extends DatabaseFactory {
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String, urlOptions: Map[String, String]) = {
+  def apply(driver: String, url: String, username: String, password: String) = {
     new AutoDisablingDatabase(
-      databaseFactory(dbhosts, dbname, username, password, urlOptions),
+      databaseFactory(driver, url, username, password),
       disableErrorCount,
       disableDuration)
   }
@@ -22,7 +22,7 @@ extends Database
 with DatabaseProxy
 with AutoDisabler {
   def open() = {
-    throwIfDisabled(database.hosts.head)
+    throwIfDisabled(url)
     try {
       val rv = database.open()
       noteOperationOutcome(true)
@@ -36,5 +36,5 @@ with AutoDisabler {
     }
   }
 
-  def close(connection: Connection) { database.close(connection) }
+  override def close(connection: Connection) { database.close(connection) }
 }

@@ -2,7 +2,8 @@ package com.twitter.querulous.query
 
 import java.sql.Connection
 import org.apache.commons.dbcp.{DelegatingConnection => DBCPConnection}
-import com.mysql.jdbc.{ConnectionImpl => MySQLConnection}
+
+
 
 trait DestroyableConnection {
   def destroy()
@@ -15,11 +16,9 @@ trait ConnectionDestroying {
       conn match {
         case c: DBCPConnection =>
           destroyDbcpWrappedConnection(c)
-        case c: MySQLConnection =>
-          c.abortInternal()
         case c: DestroyableConnection =>
           c.destroy()
-        case _ => error("Unsupported driver type, cannot reliably timeout.")
+        case _ => sys.error("Unsupported driver type, cannot reliably timeout.")
       }
   }
 

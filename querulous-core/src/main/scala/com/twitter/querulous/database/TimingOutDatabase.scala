@@ -16,11 +16,10 @@ extends DatabaseFactory {
 
   private def newTimeoutPool() = new FutureTimeout(poolSize, queueSize)
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String,
-            urlOptions: Map[String, String]) = {
+  def apply(driver: String, url: String, username: String, password: String) = {
 
     new TimingOutDatabase(
-      databaseFactory(dbhosts, dbname, username, password, urlOptions),
+      databaseFactory(driver, url, username, password),
       newTimeoutPool(),
       openTimeout
     )
@@ -33,10 +32,7 @@ class TimingOutDatabase(
   openTimeout: Duration)
 extends Database
 with DatabaseProxy {
-  val label = database.name match {
-    case null => database.hosts.mkString(",") +"/ (null)"
-    case name => database.hosts.mkString(",") +"/"+ name
-  }
+
 
   private def getConnection(wait: Duration) = {
     try {
@@ -47,11 +43,11 @@ with DatabaseProxy {
       }
     } catch {
       case e: TimeoutException =>
-        throw new SqlDatabaseTimeoutException(label, wait)
+        throw new SqlDatabaseTimeoutException(database.url, wait)
     }
   }
 
   override def open() = getConnection(openTimeout)
 
-  def close(connection: Connection) { database.close(connection) }
+  override def close(connection: Connection) { database.close(connection) }
 }

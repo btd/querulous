@@ -1,7 +1,7 @@
 package com.twitter.querulous.database
 
-import java.sql.Connection
 import com.twitter.util.Duration
+import java.sql.{SQLException, Connection}
 
 object Database {
   //TODO: allow passing this via setup configuration
@@ -15,23 +15,18 @@ object Database {
 }
 
 trait DatabaseFactory {
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String, urlOptions: Map[String, String]): Database
+  def apply(driver: String, url: String, username: String, password: String): Database
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String): Database =
-    apply(dbhosts, dbname, username, password, Map.empty)
-
-  def apply(dbhosts: List[String], username: String, password: String): Database =
-    apply(dbhosts, null, username, password, Map.empty)
 }
+
 
 trait DatabaseProxy extends Database {
   def database: Database
 
-  def hosts           = database.hosts
-  def name            = database.name
+  def url             = database.url
+  def driver          = database.driver
   def username        = database.username
-  def extraUrlOptions = database.extraUrlOptions
-  def openTimeout     = database.openTimeout
+
 
   def getInnermostDatabase(): Database = {
     database match {
@@ -42,17 +37,21 @@ trait DatabaseProxy extends Database {
 }
 
 trait Database {
-  def hosts: List[String]
-  def name: String
-  def username: String
-  def extraUrlOptions: Map[String, String]
-  def openTimeout: Duration
+  def driver: String
 
-  def urlOptions = Database.defaultUrlOptions ++ extraUrlOptions
+  def url: String
+
+  def username: String
 
   def open(): Connection
 
-  def close(connection: Connection)
+  def close(connection: Connection) {
+    try {
+      connection.close()
+    } catch {
+      case _: SQLException =>
+    }
+  }
 
   def withConnection[A](f: Connection => A): A = {
     val connection = open()
@@ -67,10 +66,4 @@ trait Database {
     List.empty
   }
 
-  protected def url(hosts: List[String], name: String, urlOptions: Map[String, String]) = {
-    val nameSegment    = if (name == null) "" else ("/" + name)
-    val urlOptsSegment = urlOptions.map(Function.tupled((k, v) => k+"="+v )).mkString("&")
-
-    Database.driverName + "://" + hosts.mkString(",") + nameSegment + "?" + urlOptsSegment
-  }
 }

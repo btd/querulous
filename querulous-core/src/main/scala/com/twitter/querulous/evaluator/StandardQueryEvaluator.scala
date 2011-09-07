@@ -5,11 +5,11 @@ import com.twitter.querulous.database.{Database, DatabaseFactory}
 import com.twitter.querulous.query.{QueryClass, QueryFactory}
 
 class StandardQueryEvaluatorFactory(
-  databaseFactory: DatabaseFactory,
-  queryFactory: QueryFactory) extends QueryEvaluatorFactory {
+                                     databaseFactory: DatabaseFactory,
+                                     queryFactory: QueryFactory) extends QueryEvaluatorFactory {
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String, urlOptions: Map[String, String]) = {
-    val database = databaseFactory(dbhosts, dbname, username, password, urlOptions)
+  def apply(driver: String, url: String, username: String, password: String) = {
+    val database = databaseFactory(driver, url, username, password)
     new StandardQueryEvaluator(database, queryFactory)
   }
 }
@@ -37,31 +37,35 @@ class StandardQueryEvaluator(protected val database: Database, queryFactory: Que
     withTransaction(_.executeBatch(queryClass, query)(f))
   }
 
-  def nextId(tableName: String) = withTransaction(_.nextId(tableName))
 
   def insert(queryClass: QueryClass, query: String, params: Any*) = {
     withTransaction(_.insert(queryClass, query, params: _*))
   }
 
   def transaction[T](f: Transaction => T) = {
-    withTransaction { transaction =>
-      transaction.begin()
-      try {
-        val rv = f(transaction)
-        transaction.commit()
-        rv
-      } catch {
-        case e: Throwable =>
-          try {
-            transaction.rollback()
-          } catch { case _ => () }
-          throw e
-      }
+    withTransaction {
+      transaction =>
+        transaction.begin()
+        try {
+          val rv = f(transaction)
+          transaction.commit()
+          rv
+        } catch {
+          case e: Throwable =>
+            try {
+              transaction.rollback()
+            } catch {
+              case _ => ()
+            }
+            throw e
+        }
     }
   }
 
   private def withTransaction[A](f: Transaction => A) = {
-    database.withConnection { connection => f(new Transaction(queryFactory, connection)) }
+    database.withConnection {
+      connection => f(new Transaction(queryFactory, connection))
+    }
   }
 
   override def equals(other: Any) = {

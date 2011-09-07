@@ -7,32 +7,23 @@ import com.twitter.conversions.time._
 class SingleConnectionDatabaseFactory(defaultUrlOptions: Map[String, String]) extends DatabaseFactory {
   def this() = this(Map.empty)
 
-  def apply(dbhosts: List[String], dbname: String, username: String, password: String, urlOptions: Map[String, String]) = {
-    val finalUrlOptions =
-      if (urlOptions eq null) {
-        defaultUrlOptions
-      } else {
-        defaultUrlOptions ++ urlOptions
-      }
+  def apply(driver: String, url: String, username: String, password: String) = {
 
-    new SingleConnectionDatabase(dbhosts, dbname, username, password, finalUrlOptions)
+
+    new SingleConnectionDatabase(driver, url, username, password)
   }
 }
 
 class SingleConnectionDatabase(
-  val hosts: List[String],
-  val name: String,
+  val driver: String,
+  val url: String,
   val username: String,
-  password: String,
-  val extraUrlOptions: Map[String, String])
+  password: String)
 extends Database {
-  Class.forName("com.mysql.jdbc.Driver")
+  Class.forName(driver)
+  private val connectionFactory = new DriverManagerConnectionFactory(url, username, password)
 
-  val openTimeout = urlOptions("connectTimeout").toInt.millis
-
-  private val connectionFactory = new DriverManagerConnectionFactory(url(hosts, name, urlOptions), username, password)
-
-  def close(connection: Connection) {
+  override def close(connection: Connection) {
     try {
       connection.close()
     } catch {
@@ -41,5 +32,5 @@ extends Database {
   }
 
   def open() = connectionFactory.createConnection()
-  override def toString = hosts.head + "_" + name
+  override def toString = url
 }
